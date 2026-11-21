@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+source "$PLUGIN_CORE_AVAILABLE_PATH/common/functions"
 source "$PLUGIN_CORE_AVAILABLE_PATH/common/property-functions"
 set -eo pipefail
 [[ $DOKKU_TRACE ]] && set -x
@@ -8,7 +9,12 @@ trigger-bare-static-post-delete() {
   declare trigger="post-delete"
   declare APP="$1"
 
-  rm -rf "$DOKKU_LIB_ROOT/data/bare-static/$APP"
+  local SERVE_ROOT="$DOKKU_LIB_ROOT/data/bare-static/$APP"
+  if [[ -d "$SERVE_ROOT" ]]; then
+    "$DOCKER_BIN" image rm -f "$(get_app_image_name "$APP")" &>/dev/null || true
+  fi
+
+  rm -rf "$SERVE_ROOT"
   fn-plugin-property-destroy "bare-static" "$APP"
 }
 
