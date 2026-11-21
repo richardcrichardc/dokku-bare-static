@@ -52,6 +52,18 @@ trigger-bare-static-builder-build() {
 
   fn-plugin-property-write scheduler "$APP" selected null
 
+  # Dokku's release phase verifies dokku/<app>:latest exists via
+  # `docker image inspect` and hard-fails if missing. Stamp a trivial
+  # placeholder image so the verify passes; scheduler=null guarantees
+  # nothing is ever started from it.
+  local IMAGE
+  IMAGE="$(get_app_image_name "$APP")"
+  "$DOCKER_BIN" image build -q -t "$IMAGE" - <<DOCKERFILE >/dev/null
+FROM scratch
+LABEL com.dokku.app-name=$APP
+LABEL com.dokku.builder-type=bare-static
+DOCKERFILE
+
   plugn trigger ports-set-detected "$APP" "http:80:80"
 
   dokku_log_info1 "bare-static: $APP served from $SERVE_ROOT/public"
