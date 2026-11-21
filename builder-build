@@ -25,11 +25,32 @@ trigger-bare-static-builder-build() {
   local SERVE_ROOT="$DOKKU_LIB_ROOT/data/bare-static/$APP"
   mkdir -p "$SERVE_ROOT"
 
-  local STAGE="$SERVE_ROOT/public.new"
-  rm -rf "$STAGE"
-  cp -R "$SOURCECODE_WORK_DIR/public" "$STAGE"
-  rm -rf "$SERVE_ROOT/public"
-  mv "$STAGE" "$SERVE_ROOT/public"
+  local RELEASE_NAME="release-$DOKKU_PID"
+  local RELEASE_DIR="$SERVE_ROOT/$RELEASE_NAME"
+  rm -rf "$RELEASE_DIR"
+  cp -R "$SOURCECODE_WORK_DIR/public" "$RELEASE_DIR"
+
+  # One-time migration: replace a legacy non-symlink public/ with the symlink layout.
+  if [[ -e "$SERVE_ROOT/public" && ! -L "$SERVE_ROOT/public" ]]; then
+    rm -rf "$SERVE_ROOT/public"
+  fi
+
+  # Atomic swap: build the new symlink next to the old and rename over it.
+  # rename(2) on a symlink is atomic, so in-flight nginx requests see either
+  # the old release or the new, never a missing directory.
+  local PREVIOUS_RELEASE=""
+  if [[ -L "$SERVE_ROOT/public" ]]; then
+    PREVIOUS_RELEASE="$(readlink "$SERVE_ROOT/public")"
+  fi
+  rm -f "$SERVE_ROOT/public.new"
+  ln -s "$RELEASE_NAME" "$SERVE_ROOT/public.new"
+  mv -T "$SERVE_ROOT/public.new" "$SERVE_ROOT/public"
+
+  # Remove the previous release. Any in-flight open()s keep their inode alive
+  # via Linux fd semantics, so this is safe even mid-request.
+  if [[ -n "$PREVIOUS_RELEASE" && "$PREVIOUS_RELEASE" != "$RELEASE_NAME" ]]; then
+    rm -rf "$SERVE_ROOT/$PREVIOUS_RELEASE"
+  fi
 
   local NGINX_APP_DIR="$DOKKU_LIB_ROOT/data/nginx-vhosts/app-$APP"
   mkdir -p "$NGINX_APP_DIR"
