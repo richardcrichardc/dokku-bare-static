@@ -1,0 +1,4 @@
+[plugin]
+description = "Serve static sites from the Dokku host nginx with no app container"
+version = "0.1.0"
+[plugin.config]

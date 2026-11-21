@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+source "$PLUGIN_CORE_AVAILABLE_PATH/common/property-functions"
+set -eo pipefail
+[[ $DOKKU_TRACE ]] && set -x
+
+trigger-bare-static-post-delete() {
+  declare desc="cleans up bare-static data for a deleted app"
+  declare trigger="post-delete"
+  declare APP="$1"
+
+  rm -rf "$DOKKU_LIB_ROOT/data/bare-static/$APP"
+  fn-plugin-property-destroy "bare-static" "$APP"
+}
+
+trigger-bare-static-post-delete "$@"

@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+source "$PLUGIN_CORE_AVAILABLE_PATH/common/functions"
+source "$PLUGIN_CORE_AVAILABLE_PATH/common/property-functions"
+set -eo pipefail
+[[ $DOKKU_TRACE ]] && set -x
+
+trigger-bare-static-builder-build() {
+  declare desc="bare-static builder-build plugin trigger"
+  declare trigger="builder-build"
+  declare BUILDER_TYPE="$1" APP="$2" SOURCECODE_WORK_DIR="$3"
+
+  if [[ "$BUILDER_TYPE" != "bare-static" ]]; then
+    return
+  fi
+
+  local PLUGIN_ROOT
+  PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+  dokku_log_info1 "Building $APP as a bare-static site"
+
+  if [[ ! -d "$SOURCECODE_WORK_DIR/public" ]]; then
+    dokku_log_fail "No 'public/' directory found in repo root"
+  fi
+
+  local SERVE_ROOT="$DOKKU_LIB_ROOT/data/bare-static/$APP"
+  mkdir -p "$SERVE_ROOT"
+
+  local STAGE="$SERVE_ROOT/public.new"
+  rm -rf "$STAGE"
+  cp -R "$SOURCECODE_WORK_DIR/public" "$STAGE"
+  rm -rf "$SERVE_ROOT/public"
+  mv "$STAGE" "$SERVE_ROOT/public"
+
+  mkdir -p "$DOKKU_ROOT/$APP"
+  cp "$PLUGIN_ROOT/templates/nginx.conf.sigil" "$DOKKU_ROOT/$APP/nginx.conf.sigil"
+
+  fn-plugin-property-write scheduler "$APP" selected null
+
+  plugn trigger ports-set-detected "$APP" "http:80:80"
+
+  dokku_log_info1 "bare-static: $APP served from $SERVE_ROOT/public"
+}
+
+trigger-bare-static-builder-build "$@"

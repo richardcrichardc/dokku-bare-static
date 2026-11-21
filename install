@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+source "$PLUGIN_CORE_AVAILABLE_PATH/common/property-functions"
+set -eo pipefail
+[[ $DOKKU_TRACE ]] && set -x
+
+trigger-bare-static-install() {
+  declare desc="installs the bare-static plugin"
+  declare trigger="install"
+
+  fn-plugin-property-setup "bare-static"
+  mkdir -p "$DOKKU_LIB_ROOT/data/bare-static"
+  chown -R dokku:dokku "$DOKKU_LIB_ROOT/data/bare-static" 2>/dev/null || true
+}
+
+trigger-bare-static-install "$@"

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -eo pipefail
+[[ $DOKKU_TRACE ]] && set -x
+
+trigger-bare-static-builder-detect() {
+  declare desc="bare-static builder-detect plugin trigger"
+  declare trigger="builder-detect"
+  declare APP="$1" SOURCECODE_WORK_DIR="$2"
+
+  if [[ -f "$SOURCECODE_WORK_DIR/bare-static.json" ]]; then
+    echo "bare-static"
+    return
+  fi
+}
+
+trigger-bare-static-builder-detect "$@"
