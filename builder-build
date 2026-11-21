@@ -66,6 +66,11 @@ DOCKERFILE
 
   plugn trigger ports-set-detected "$APP" "http:80:80"
 
+  # scheduler-null has no scheduler-deploy, so Dokku's normal core-post-deploy
+  # (which fires nginx regen) never runs. Fire the proxy rebuild ourselves so
+  # our template actually gets rendered into the live vhost.
+  plugn trigger proxy-build-config "$APP"
+
   dokku_log_info1 "bare-static: $APP served from $SERVE_ROOT/public"
 }
 

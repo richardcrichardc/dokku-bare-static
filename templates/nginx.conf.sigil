@@ -8,9 +8,14 @@
 {{ $is_redirect := and (not $is_ssl) (eq $listen_port "80") $.SSL_INUSE }}
 server {
   {{ if $is_ssl }}
+  {{ if eq $.HTTP2_DIRECTIVE_SUPPORTED "true" }}
   listen      [{{ $.NGINX_BIND_ADDRESS_IP6 }}]:{{ $listen_port }} ssl;
   listen      {{ if $.NGINX_BIND_ADDRESS_IP4 }}{{ $.NGINX_BIND_ADDRESS_IP4 }}:{{ end }}{{ $listen_port }} ssl;
   http2 on;
+  {{ else }}
+  listen      [{{ $.NGINX_BIND_ADDRESS_IP6 }}]:{{ $listen_port }} ssl http2;
+  listen      {{ if $.NGINX_BIND_ADDRESS_IP4 }}{{ $.NGINX_BIND_ADDRESS_IP4 }}:{{ end }}{{ $listen_port }} ssl http2;
+  {{ end }}
   {{ else }}
   listen      [{{ $.NGINX_BIND_ADDRESS_IP6 }}]:{{ $listen_port }};
   listen      {{ if $.NGINX_BIND_ADDRESS_IP4 }}{{ $.NGINX_BIND_ADDRESS_IP4 }}:{{ end }}{{ $listen_port }};
