@@ -39,6 +39,17 @@ trigger-bare-static-builder-build() {
   rm -f "$NGINX_APP_DIR/nginx.conf.sigil.$DOKKU_PID.missing" \
         "$NGINX_APP_DIR/nginx.conf.sigil.$DOKKU_PID"
 
+  # If the app was previously deployed under a non-null scheduler, stop
+  # whatever it was running before we switch its scheduler to null.
+  local CURRENT_SCHEDULER
+  CURRENT_SCHEDULER="$(fn-plugin-property-get-default scheduler "$APP" selected "")"
+  if [[ -z "$CURRENT_SCHEDULER" ]]; then
+    CURRENT_SCHEDULER="$(fn-plugin-property-get-default scheduler --global selected docker-local)"
+  fi
+  if [[ "$CURRENT_SCHEDULER" != "null" ]]; then
+    plugn trigger scheduler-stop "$CURRENT_SCHEDULER" "$APP"
+  fi
+
   fn-plugin-property-write scheduler "$APP" selected null
 
   plugn trigger ports-set-detected "$APP" "http:80:80"
